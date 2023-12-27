@@ -3,12 +3,13 @@
 #Question 1
 #Write a function to print "hello_USERNAME!" USERNAME is the input of the function. The first line of the code has been defined as below.
 
-def hello_name(user_name):
-    print("What is your username?")
-    user_name=input()
-    print("hello_" + user_name +"!") 
+print("What is your username?")
+username=input()
 
-hello_name("user_name")
+def hello_name(username):
+    print("hello_" + username +"!") 
+
+hello_name(username)
                
 # # Question 2
 # # Write a python function, first_odds that prints the odd numbers from 1-100 and returns nothing
@@ -59,10 +60,13 @@ list3=[4,5,7,8,6,9,15,19]
 list4=[5,6,7,8,9,10]
 list5=[1,2,3,7,6,5,4]
 
-def is_consecutive(list_1):
-    print (list(range(min(list_1), max(list_1)+1)) == list_1)
+def is_consec(this_list):
+    if (list(range(min(this_list), max(this_list)+1)) == this_list):
+        return True
+    else:
+        return False
 
-print(is_consecutive(list4))
+print(is_consec(list2))
 
 
 # def is_consecutive(a_list):
