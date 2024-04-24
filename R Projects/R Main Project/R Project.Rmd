@@ -1,0 +1,227 @@
+---
+title: "R Project"
+output: pdf_document
+date: "2024-04-04"
+---
+
+```{r}
+data <- read.csv('Kaggle_data.csv')
+View(data)
+#possible pattern: 2 conditions, 1 is that the passenger ordered room service > 400 times, then they likely were to not go to another dimension, probably another condition needs to be met too bc some don't follow the abave pattern
+```
+
+```{r}
+subset_data<-subset(data, select = - c(PassengerId, Name, RoomService, Transported)) 
+View(subset_data)
+
+#just learned that subset function with - removes columns you don't want from dataframe (oops)
+
+library(dplyr)
+library(ggplot2)
+
+sub <- data %>% select(PassengerId, Name, HomePlanet, Destination)
+sub
+
+#Demographics: mean age of all passengers aboard?
+age_mean <- mean(data$Age, na.rm = TRUE) # mean age = 28.8 years
+age_mean
+
+distribution <- data %>% count(Age, na.rm = TRUE) #groups # of individuals by age
+View(distribution) #This data shows that there were 178 newborns aboard, so there are likely lots of new mothers and fathers aboard as well (good demographic to advertise to). Age 45 and on shows fewer passengers. Oldest passenger is 79.
+
+age_graph <- ggplot(data = distribution) +
+  geom_col(fill = 'orange',mapping = aes(x =Age, y =n)) +
+  labs(
+    title = 'Age Distribution of Passengers',
+    x = 'Age (years)',
+    y = 'Number of Individuals Aboard'
+  )
+
+age_graph
+
+total <-  sum(distribution$n, na.rm = TRUE)
+total #total = 8693 passengers aboard
+```
+
+```{r}
+#What routes were most common, according to the data? I.e. Earth to TRAPPIST-1e
+home_options <-sub %>% count(HomePlanet, na.rm = TRUE)
+View(home_options) #201 passeenger home planets unaccounted for
+  #main home options: Mars, Earth, Europa
+  #majority of passengers are from Earth
+destinations <- sub %>% count(Destination, na.rm = TRUE)
+View(destinations) #182 passenger destinations unaccounted for
+  #main destination options: TRAPPIST-1e, PSO J318.5-22, and 55 Cancri e
+  #majority of passengers are headed to TRAPPIST-1e
+  #second is 55 Cancri e
+  #why are very few passengers headed to PSO J318.5-22? something to look into
+
+destinations_graph <- ggplot(data = destinations) + geom_col(fill = 'blue', mapping = aes(x = Destination, y = n)) + 
+  labs(
+    title = 'Destinations of Passengers',
+    x = 'Destination',
+    y = 'Number of Passengers'
+) 
+destinations_graph
+
+  #Trips to TRAPPIST-1e
+earth_to_trappist <- sub %>% filter(HomePlanet == 'Earth' & Destination == 'TRAPPIST-1e')
+View(earth_to_trappist) #3101 passengers took this route
+
+europa_to_trappist <- sub %>% filter(HomePlanet == 'Europa' & Destination == 'TRAPPIST-1e')
+View(europa_to_trappist) #1189 passengers took this route
+
+mars_to_trappist <- sub %>% filter(HomePlanet == 'Mars' & Destination == 'TRAPPIST-1e')
+View(mars_to_trappist) #1475 passengers took this route
+
+#5915 individuals total going to TRAPPIST-1e, according to destinations table
+
+  #Trips to PSO J318.5-22
+earth_to_pso <-  sub %>% filter(HomePlanet == 'Earth' & Destination == 'PSO J318.5-22')
+View(earth_to_pso) #712 passengers took this route
+
+europa_to_pso <- sub %>% filter(HomePlanet == 'Europa' & Destination == 'PSO J318.5-22')
+View(europa_to_pso) #19 passengers took this route
+
+mars_to_pso <- sub %>% filter(HomePlanet == 'Mars' & Destination == 'PSO J318.5-22')
+View(mars_to_pso) #49 passengers took this route
+
+#796 individuals all going to PSO J318.5-22
+
+  #Trips to 55 Cancri e
+earth_to_cancri <- sub %>% filter(HomePlanet == 'Earth' & Destination == '55 Cancri e')
+View(earth_to_cancri) #690 passengers took this route
+
+europa_to_cancri <- sub %>% filter(HomePlanet == 'Europa' & Destination == '55 Cancri e')
+View(europa_to_cancri) #886 passengers took this route
+
+mars_to_cancri <- sub %>% filter(HomePlanet == 'Mars' & Destination == '55 Cancri e')
+View(mars_to_cancri) #193 passengers took this route
+
+#1800 individuals going to 55 Cancri e
+
+#Dataframe of Different Routes
+trappist_routes <- c('Earth to TRAPPIST-1e', 'Europa to TRAPPIST-1e', 'Mars to TRAPPIST-1e')
+trappist_data <- c(3101, 1189, 1475)
+data_trappist <- data.frame(trappist_routes, trappist_data)
+
+pso_routes <- c('Earth to PSO J318.5-22', 'Europa to PSO J318.5-22', 'Mars to PSO J318.5-22')
+pso_data <- c(712, 19, 49)
+data_pso <- data.frame(pso_routes, pso_data)
+
+cancri_routes <- c('Earth to 55 Cancri e', 'Europa to 55 Cancri e', 'Mars to 55 Cancri e')
+cancri_data <- c(690, 886, 193)
+data_cancri <- data.frame(cancri_routes, cancri_data)
+
+route_data <- data.frame(data_trappist, data_pso, data_cancri)
+route_data
+
+#(5915/8693) * 100
+
+```
+
+```{r}
+#Out of all passengers, what percentage ordered room service? Is it worth it to offer if only a few order? compare to people that used food court?
+food <- data %>% select(PassengerId, Name, VIP, RoomService, FoodCourt, ShoppingMall, CryoSleep)
+rm_serv_only <- food %>% filter(RoomService > 0 & FoodCourt == 0) 
+View(rm_serv_only) #1343 passengers only ordered rm service
+
+food_court_only <- food %>% filter(RoomService == 0 & FoodCourt > 0)
+View(food_court_only) #1456 passengers only eat at food court
+
+both <- food %>% filter(RoomService > 0 & FoodCourt > 0)
+View(both) #1530 passengers used both options for food
+
+  #percentage of passengers that ordered room service at all
+1530 + 1343 #2873 passengers
+(2873/8693) * 100 #33.05% of all passengers did room service at least 1x
+
+  #percentage of passengers that ate at food court at all
+1530 + 1456 #2986 passengers
+(2986/8693) * 100 #34.35% of all passengers ate at the food court at least 1x
+
+shop_food <- food %>% filter(RoomService == 0 & FoodCourt == 0 & CryoSleep == 'False' & ShoppingMall > 0)
+View(shop_food) #321 passengers were not in cryosleep mode and possibly got food from shopping mall options
+
+no_food_maybe <- food %>% filter(RoomService == 0 & FoodCourt == 0 & CryoSleep == 'False' & ShoppingMall == 0)
+View(no_food_maybe) #660 passengers not in cryosleep mode and didn't eat at main food sources aboard. maybe they brought their own food supply onboard?
+
+2962 + 1530 + 1456 + 1343 + 321 + 660 #2962 is total number of cryosleep passengers, rest are using food options aboard or bringing their own aboard possibly
+
+8693 - 8272 #421 passengers either missing data or unaccounted for food-options-wise
+
+#Graphing
+food_type <- c('Room Service Only', 'Food Court Only', 'Both Room Service and Food Court', 'Shopping Mall')
+nums <- c(1343, 1456, 1530, 321)
+
+foodz <- data.frame(food_type, nums)
+
+ggplot(data = foodz) + geom_col(fill = 'lightgreen', mapping = aes(x = food_type, y = nums)) + 
+  labs(
+    title = 'Potential Food Sources Aboard and Number of Passengers that Accessed Each',
+    x = 'Location of Food Source',
+    y = 'Number of Passengers per Location'
+  )
+
+```
+
+```{r}
+#What passengers are not VIP? then which ones out of that pool opted for cryosleep?
+sub_not_vip <- subset(vip, VIP == 'False')
+View(sub_not_vip) #8291 passengers are not VIP
+non_vip <- (8291/8693) * 100 #95.38% of passengers are not VIP
+
+sub_sub_not_vip <- subset(sub_not_vip, CryoSleep == 'True')
+View(sub_sub_not_vip) #2941 passengers that are not VIP opted for cryosleep
+(2941/8291) * 100 #35.47% of non-VIP passengers opted for cryosleep (could mean that cryosleep is overall a strong option for a lot of passengers, regardless of cost?)
+
+passenger_types <- data.frame(type= c('VIP', 'Non VIP'), percentage = c(vip_pass, non_vip))
+passenger_types
+
+passenger_types_graph <- ggplot(data = passenger_types, aes(x = '', y = percentage, fill = type)) + 
+                                  geom_bar(stat = 'identity', width = 1) + coord_polar('y', start = 0) + theme_void() +
+  labs(
+    title = 'Percentage of Non-VIP and VIP Passengers'
+  )
+
+passenger_types_graph
+```
+
+```{r}
+#Figuring out what percentage/proportion of passengers are VIP, then passengers who are VIP and opted for cryosleep
+vip <- data %>% select(PassengerId, Name, VIP, CryoSleep)
+sub_vip <- subset(vip, VIP == 'True' )
+View(sub_vip) # Only 199 VIP passengers out of 8693 total
+vip_pass <- (199/8693) * 100 #2.29% of whole ship are VIP
+
+sub_sub_vip <- subset(sub_vip, CryoSleep == 'True')
+View(sub_sub_vip) #only 21 people out of 199 VIP did cryosleep
+(21/199) * 100 #only about 10.55% of VIP passengers did cryosleep
+#even though they can likely afford cryosleep, why is the percentage so low among VIP passengers? Is it the experience itself, or are there other factors we haven't thought of?
+
+#Graphing proportion of VIP and those that did cryosleep vs nonVIP and those that did cryosleep
+
+type <- c(rep('VIP' , 2), rep('Non-VIP', 2))
+key <- rep(c('Number of Passengers', 'Proportion of Passenger Type that did Cryosleep'), 2)
+data_c <- c(199, 21, 8291, 2941)
+
+pass_type <- data.frame(type, key, data_c)
+pass_type
+
+ggplot(data = pass_type, aes(fill = key, y = data_c, x = type)) +
+  geom_bar(position = 'dodge', stat = 'identity') +
+  labs(
+    title = 'Passengers of Each Type and Proportion of Them that Did Cryosleep',
+    x = 'Type', 
+    y = 'Number of Individuals'
+  )
+
+```
+
+```{r}
+#Figuring out how many people opted for cryosleep; do a cost-benefit analysis for cryosleep vs. using $ on living functions like eating and drinking
+21 + 2941 #2962 passengers total did cryosleep
+(2962/8693) * 100 #34.07% of all passengers did cryosleep
+#*Cannot currently do a cost-benefit analysis with data given to compare cost of CryoSleep vs. using $ on living functions aboard. Need more data about costs to do said analysis (future directions)
+
+```
