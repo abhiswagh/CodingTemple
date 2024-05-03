@@ -1,0 +1,221 @@
+---
+title: "Capstone Project 1"
+output: pdf_document
+date: "2024-04-25"
+---
+
+```{r}
+library(dplyr)
+library(ggplot2)
+#Demographics data
+higher_ed <- read.csv('student_prediction.csv')
+View(higher_ed)
+
+#Gender/Sex
+gender <- higher_ed %>% select(STUDENTID, GENDER)
+gender_count <- gender %>% count(GENDER, na.rm = TRUE)
+View(gender_count) #this dataset shows more men than women were surveyed/included in this data
+#58 women vs. 87 men; I hypothesized it would be closer to equal as most good datasets aim for this balance
+
+#Student Age Distribution
+distribution <- higher_ed %>% count(AGE, na.rm = TRUE) 
+distribution$labels <- c('18-21', '22-25', 'above 26')
+View(distribution)
+(10/145)*100
+
+age_df <- data.frame(
+  x <- c(65, 70, 10),
+labels <- c('18-21', '22-25', 'above 26'))
+
+age_graph <- ggplot(age_df, aes(x ='', y =x, fill = labels)) +
+  geom_bar(stat = 'identity', width = 1) +
+  labs(
+    title = 'Age Distribution of Students',
+    x = 'Age Groups (Years)',
+    y = 'Number of Individuals Per Group'
+  ) + coord_polar("y", start=0)
+
+age_graph #majority of students are in Group 1 and 2, mostly group 2: 22-25
+
+
+#Partnered or Not
+partner_data <- higher_ed %>% select(STUDENTID, PARTNER)
+partner_count <- partner_data %>% count(PARTNER, na.rm = TRUE)
+View(partner_count) #slightly more not partnered than partnered (84:61 ratio)
+
+#Parental Status
+parents <- higher_ed %>% count(KIDS)
+View(parents) #majority of students' parents are married and alive (127:11:7 ratio)
+
+#Scholarship Type
+scholarship_data <- higher_ed %>% count(SCHOLARSHIP)
+View(scholarship_data) #50% scholarship most common among students surveyed (76 students in this category)
+(76/145) * 100 #52.41% of all students surveyed had a 50% scholarship
+scholarship_data$labels <- c('0', '25', '50', '75', 'Full')
+
+scholarship_status_graph <- ggplot(data = scholarship_data, aes(x = labels, y = n)) +
+  geom_col(fill = 'lightgreen') +
+  labs(
+    title = 'Scholarship Status of Students',
+    x = '% Scholarship',
+    y = 'Number of Students with Scholarship Amount'
+  ) 
+scholarship_status_graph
+
+```
+
+```{r}
+#Research Question 1: What trends exist in studying behaviors among university students? How do those relate to cumulative GPA? 
+#I hypothesize that behaviors such as reading scientific literature, studying several hours a week (>20), and studying with friends predict an overall higher GPA.
+
+study_behaviors <- higher_ed %>% select(STUDENTID, READ_FREQ, READ_FREQ_SCI, ATTEND, PREP_STUDY, CUML_GPA, STUDY_HRS)
+View(study_behaviors)
+#Research Question 1a: Do students in this dataset read scientific literature or non-scientific literature more often? How is this related to cumulative GPA?
+
+#Context-wise, student population surveyed are from STEM majors (engineering and Educational Sciences)
+#I hypothesize that students read scientific literature more often, based on the background info of the dataset.
+study_read <- study_behaviors %>% select(READ_FREQ, READ_FREQ_SCI)
+study_read_count <- study_read %>% count(READ_FREQ)
+study_read_count$label <- c('None', 'Sometimes', 'Often')
+study_read_count
+
+study_read_sci_count <- study_read %>% count(READ_FREQ_SCI)
+study_read_sci_count$label <- c('None', 'Sometimes', 'Often')
+study_read_sci_count
+
+read_sci_or_not <- c(rep('Reading Frequency of Non-Scientific Literature', 3), rep('Reading Frequency of Scientific Literature', 3))
+freq <- rep(c('None', 'Sometimes', 'Often'), 2)
+values <- c(27,99,19,20,103,22)
+dataframe <- data.frame(read_sci_or_not, freq, values)
+dataframe
+
+read_freq_type_graph <- ggplot(data = dataframe, aes(fill = freq, y = values, x = read_sci_or_not)) +
+  geom_bar(position = 'dodge', stat = 'identity') +
+  labs(
+    title = 'Reading Frequency Based on Literature Type',
+    x = 'Reading Frequency Based on Type of Literature', 
+    y = 'Number of Students'
+  )
+
+read_freq_type_graph #overall, there's more students that read scientific literature. Most students read scientific literature sometimes (103) or about 71.03% of students read at this frequency. Most students read non-scientific sometimes as well. 99 or about 68.28% of students read at this frequency.
+
+(103/145)*100
+(99/145)*100
+
+#Cumulative GPA stats for students who read scientific literature
+sci_lit_mean_gpa <- study_behaviors %>% select(STUDENTID, READ_FREQ_SCI, CUML_GPA) %>%
+  group_by(READ_FREQ_SCI) %>% summarise(Mean_GPA = mean(CUML_GPA))
+sci_lit_mean_gpa$labels <- c('None', 'Sometimes', 'Often')
+sci_lit_mean_gpa #Again, likely inaccurate stats, as most data points fall in the sometimes category. The highest mean cumulative GPA, according to this analysis is 3.25 for students who never read scientific literature. It could be that they are part of the group that reads non-scientific literature or other confounding variables are muddying the data. Inconclusive data analysis on this one.
+
+```
+
+
+```{r}
+#Research Question 1b: Is studying alone versus studying with friends for midterms associated with higher cumulative GPA?
+study_buddy <- study_behaviors %>% select(STUDENTID, PREP_STUDY, CUML_GPA)
+study_buddy_count <- study_buddy %>% count(PREP_STUDY)
+study_buddy_count #107 students who study alone vs 27 students who study with friends vs 11 students who don't study, so any trend found in dataset is skewed. There are significantly more data points for students who study alone than those who study with friends.
+
+study_buddy_GPA <- study_buddy %>%
+  group_by(PREP_STUDY) %>%
+  summarise(Mean_GPA = mean(CUML_GPA))
+study_buddy_GPA$Label <- c('Alone', 'With Friends', 'Not Applicable')
+study_buddy_GPA #The students who don't study for the midterm exam have the lowest calculated GPA. Mean GPA is almost 0.2 higher for studying alone than with friends, but data is skewed due to number of people surveyed who do either behavior. It also doesn't account for people who might do a bit of both study behaviors.
+```
+
+
+```{r}
+#Research Question 1c: What is the distribution of the number of hours student study per week? 
+study_hrs <- study_behaviors %>% count(STUDY_HRS)
+study_hrs
+study_hrs$labels <- c('0', '0-5 hours', '6-10 hours', '11-20 hours', 'more than 20 hours')
+
+study_hrs_graph <- ggplot(data = study_hrs, aes(x = labels, y = n)) +
+  geom_col(fill = 'red') +
+  labs(
+    title = 'Number of Students vs. Number of Hours Studied per Week',
+    x = 'Number of Hours Studied per Week',
+    y = 'Number of Students'
+  ) 
+study_hrs_graph #About half of students (74), about 51.03% of students studied less than 5 hours a week
+(74/145)*100
+
+study_hrs_mean_GPA <- study_behaviors %>% select(STUDENTID, STUDY_HRS, CUML_GPA) %>%
+  group_by(STUDY_HRS) %>%
+  summarise(mean_gpa = mean(CUML_GPA))
+study_hrs_mean_GPA #Students who study 6-10 hours have the highest mean cumulative GPA (3.47). Only 4 students study more than 20 hours a week, and their average cumulative GPA is 2.25. This could again be an inaccurate statistic, but it's possible that studying for more than 20 hours a week doesn't actually help boost GPA. Studying 6-10 hours a week could be the ideal amount of time to study to boost/maintain a high GPA, as the GPA decreases the more subsequent hours one studies after that.
+study_hrs_mean_GPA$labels <- c('0', '0-5 hours', '6-10 hours', '11-20 hours', 'more than 20 hours')
+
+study_hrs_mean_GPA_graph <- ggplot(data = study_hrs_mean_GPA, aes(x = labels, y = mean_gpa)) +
+  geom_col(fill = 'orange') +
+  labs(
+    title = 'Mean Cumulative GPA vs. Number of Hours Studied per Week',
+    x = 'Number of Hours Studied per Week',
+    y = 'Mean Cumulative GPA'
+  ) 
+study_hrs_mean_GPA_graph
+s```
+
+
+```{r}
+#Research Question 1d (bonus, unrelated to study behaviors): High school type and association with GPA?
+hs_types <- higher_ed %>% count(HS_TYPE, na.rm = TRUE) 
+View(hs_types) #103 students were from state HS's 
+(103/145) * 100 #71.03% of students surveyed were from state HS
+(25/145) * 100 #17.24% of students surveyed were from private HS
+(17/145) * 100 #11.72% of students surveyed were from a different type of HS (could be arts/specialized program HS)
+
+hs_and_gpa <- higher_ed %>% select(STUDENTID, HS_TYPE, CUML_GPA) %>%
+  group_by(HS_TYPE) %>%
+  summarise(mean_gpa = mean(CUML_GPA))
+hs_and_gpa$labels <- c('Private', 'State', 'Other')
+hs_and_gpa
+
+hs_gpa_graph <- ggplot(data = hs_and_gpa) +
+  geom_col(fill = 'purple',mapping = aes(x =labels, y =mean_gpa)) +
+  labs(
+    title = 'High School Type and Mean Cumulative GPA Trends',
+    x = 'High School Type',
+   y = 'Mean Cumulative GPA of Students from High School Type'
+  )
+#Tried doing a scatterplot, but it didn't make sense with the form of the data
+#hs_gpa_data <- higher_ed %>% select(STUDENTID, HS_TYPE, CUML_GPA)
+#hs_gpa_data
+
+#hs_gpa_data_graph <- ggplot(hs_gpa_data, aes(x=STUDENTID, y=CUML_GPA)) + 
+    #geom_point()
+#hs_gpa_data_graph
+
+hs_gpa_graph #Highest GPA seems to be of State HS graduated students at 3.20, but this is a skewed stat as most surveyed students (71%) came from state high schools
+```
+
+```{r}
+#Research Question 2: Which learning methods are preferred by students most in university? (taking notes, listening, discussion)
+
+learning_methods <- higher_ed %>% select(STUDENTID, NOTES, LISTENS, LIKES_DISCUSS, CLASSROOM)
+notes <- learning_methods %>% count(NOTES)
+listens <- learning_methods %>% count(LISTENS)
+likes_discuss <- learning_methods %>% count(LIKES_DISCUSS)
+notes
+listens
+likes_discuss
+
+methods <- c(rep('Note-taking', 3), rep('Listening', 3), rep('Discussion', 3))
+responses <- rep(c('Never', 'Sometimes', 'Always'), 3)
+values <- c(5,56,84,29,79,37,9,70,66)
+dataframe2 <- data.frame(methods, responses, values)
+dataframe2
+
+methods_graph <- ggplot(dataframe2, aes(fill=responses, y=values, x=methods)) + 
+    geom_bar(position="dodge", stat="identity") + xlab('Learning Methods') + ylab('Number of Students per Category') + ggtitle('Preferred Learning Methods')
+methods_graph #Note-taking is the preferred method of learning according to this student population, and discussion in class is a close second method. 
+
+```
+
+```{r}
+#Good future direction: The last two methods are more experiential learning, whereas the first two methods are more lecture-based/puts onus of learning on student alone. Comparing the two sets of methods to each other, which ones are associated with higher mean cumulative GPA?
+
+```
+
+
